@@ -79,7 +79,7 @@ struct BeFS_SuperBlock
 
 void parseBeFS(const char* _In_ src)
 {
-	const BeFS_SuperBlock* superblock = reinterpret_cast<const BeFS_SuperBlock*>(src);
+	const BeFS_SuperBlock* superblock = reinterpret_cast<const BeFS_SuperBlock*>(src + sectorSize);//skip boot sector
 	std::cout << "BeOS name: " << superblock->name << '\n';
 	std::cout << "magic 1: " << (superblock->magic1 == 0x42465331 ? "matched" : "unmatched") << '\n';
 	std::cout << "block size: " << superblock->block_size << '\n';
@@ -91,14 +91,17 @@ void parseBeFS(const char* _In_ src)
 	std::cout << "bitmap blocks per ag: " << superblock->blocks_per_ag << '\n';
 	std::cout << "data blocks per ag: " << superblock->blocks_per_ag * superblock->block_size * 8 << '\n';
 	std::cout << "total ags: " << superblock->num_ags << '\n';
+	std::cout << "bitmap size: " << superblock->block_size * superblock->blocks_per_ag * superblock->num_ags << '\n';
 	std::cout << "system health: " << (superblock->flags == 0x434c454e ? "clean" : (superblock->flags == 0x44495254 ? "dirty" : "corrupted")) << '\n';
+	std::cout << "magic 3: " << (superblock->magic3 == 0x15B6830E ? "matched" : "unmatched") << '\n';
 	std::cout << "root allocation group: " << (superblock->root_dir.allocation_group) << '\n';
 	std::cout << "root start (within ag): " << (superblock->root_dir.start) << '\n';
-	int32_t magic1 = reinterpret_cast<const BeFS_inode*>(
-		static_cast<const char*>(src) + ((static_cast<int64_t>(superblock->root_dir.allocation_group) << superblock->ag_shift) | superblock->root_dir.start)
-		)->magic1;
-	std::cout << "root node magic: " << std::hex << magic1 << std::dec << '\n';
-	if (magic1 != 0x3bbe0ad9)
+	const BeFS_inode* root_node = reinterpret_cast<const BeFS_inode*>(src +
+		(superblock->block_size * superblock->blocks_per_ag * superblock->num_ags) + superblock->block_size +
+		((static_cast<int64_t>(superblock->root_dir.allocation_group) << superblock->ag_shift) | superblock->root_dir.start)
+		);
+	std::cout << "root node magic: " << std::hex << root_node->magic1 << std::dec << '\n';
+	if (root_node->magic1 != 0x3bbe0ad9)
 		std::cout << "fatal error, incorrect root inode magic value\n";
 
 	return;
@@ -204,7 +207,7 @@ bool parsePartitionTableEntry(const char* _In_ sector, const char* src)
 			FILE_BEGIN);
 		ReadFile(hd1, buffer, sectorSize * sectorsToRead, nullptr, nullptr);
 		CloseHandle(hd1);
-		parseBeFS(buffer + sectorSize);
+		parseBeFS(buffer);
 		for (uint64_t i = 0; i < sectorSize * sectorsToRead; i++)
 		{
 			if (buffer[i] < 123 && buffer[i] > 31)
@@ -261,6 +264,7 @@ void parseSector(const char* _In_ sector, const char* src)
 				break;
 	}
 }
+
 int main()
 {
 	char buffer[buffersize];
