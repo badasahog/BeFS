@@ -106,7 +106,7 @@ void parseBeFS(const char* _In_ src)
 	if (root_node->inode_num.allocation_group != superblock->root_dir.allocation_group)
 		std::cout << "fatal error: incorrect root inode ag sanity value\n";
 	if (root_node->inode_num.start != superblock->root_dir.start)
-		std::cout << "fatal error: incorrect root inode start value\n";
+		std::cout << "fatal error: incorrect root inode start sanity value\n";
 
 
 	return;
@@ -203,7 +203,7 @@ bool parsePartitionTableEntry(const char* _In_ sector, const char* src)
 				std::cout << "Access Denied\n";
 			return EXIT_FAILURE;
 		}
-		int sectorsToRead = 512 * 3;
+		int sectorsToRead = 20480;
 		char* buffer = (char*)malloc(sectorSize * sectorsToRead);
 		SetFilePointerEx(
 			hd1,
@@ -213,7 +213,7 @@ bool parsePartitionTableEntry(const char* _In_ sector, const char* src)
 		ReadFile(hd1, buffer, sectorSize * sectorsToRead, nullptr, nullptr);
 		CloseHandle(hd1);
 		parseBeFS(buffer);
-		for (uint64_t i = 0; i < sectorSize * sectorsToRead; i++)
+		for (uint64_t i = 0; i < sectorSize * 5; i++)
 		{
 			if (buffer[i] < 123 && buffer[i] > 31)
 			{
