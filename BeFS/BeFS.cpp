@@ -102,7 +102,12 @@ void parseBeFS(const char* _In_ src)
 		);
 	std::cout << "root node magic: " << std::hex << root_node->magic1 << std::dec << '\n';
 	if (root_node->magic1 != 0x3bbe0ad9)
-		std::cout << "fatal error, incorrect root inode magic value\n";
+		std::cout << "fatal error: incorrect root inode magic value\n";	
+	if (root_node->inode_num.allocation_group != superblock->root_dir.allocation_group)
+		std::cout << "fatal error: incorrect root inode ag sanity value\n";
+	if (root_node->inode_num.start != superblock->root_dir.start)
+		std::cout << "fatal error: incorrect root inode start value\n";
+
 
 	return;
 }
